@@ -1,0 +1,74 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  password      String
+  name          String?
+  referralCode  String    @unique
+  referrerId    String?
+  referrer      User?     @relation("Referrals", fields: [referrerId], references: [id])
+  referrals     User[]    @relation("Referrals")
+  balance       Float     @default(50000.0)
+  profilePic    String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  investments   Investment[]
+  transactions  Transaction[]
+}
+
+model FlashSale {
+  id              String    @id @default(cuid())
+  title           String
+  amountPerSlot   Float     @default(2000.0)
+  totalSlots      Int
+  availableSlots  Int
+  durationHours   Int
+  returnRate      Float     // e.g., 0.05 for 5%
+  openingAt       DateTime
+  status          String    @default("PENDING") // PENDING, ACTIVE, CLOSED
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  investments     Investment[]
+}
+
+model Investment {
+  id              String    @id @default(cuid())
+  userId          String
+  user            User      @relation(fields: [userId], references: [id])
+  flashSaleId     String
+  flashSale       FlashSale @relation(fields: [flashSaleId], references: [id])
+  amount          Float
+  slots           Int
+  expectedReturn  Float
+  maturityDate    DateTime
+  status          String    @default("ONGOING") // ONGOING, COMPLETED
+  createdAt       DateTime  @default(now())
+
+  @@index([userId])
+  @@index([flashSaleId])
+}
+
+model Transaction {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id])
+  type        String    // INVESTMENT, GAIN, REFERRAL_COMMISSION, DEPOSIT, WITHDRAWAL
+  amount      Float
+  description String?
+  createdAt   DateTime  @default(now())
+
+  @@index([userId])
+}
